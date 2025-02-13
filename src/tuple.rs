@@ -1,5 +1,11 @@
 use std::ops::{Add, Div, Mul, Sub};
 
+const EPSILON: f64 = 0.0005;
+
+fn equal(a: f64, b: f64) -> bool {
+    (a - b).abs() < EPSILON
+}
+
 #[derive(Debug, PartialEq)]
 struct Tuple {
     x: f64,
@@ -34,6 +40,27 @@ impl Tuple {
 
     fn magnitude(&self) -> f64 {
         (self.x.powi(2) + self.y.powi(2) + self.z.powi(2) + self.w.powi(2)).sqrt()
+    }
+
+    fn normalize(&self) -> Self {
+        Self {
+            x: self.x / self.magnitude(),
+            y: self.y / self.magnitude(),
+            z: self.z / self.magnitude(),
+            w: self.w / self.magnitude(),
+        }
+    }
+
+    fn dot(&self, other: &Self) -> f64 {
+        self.x * other.x + self.y * other.y + self.z * other.z + self.w * other.w
+    }
+
+    fn cross(&self, other: &Self) -> Self {
+        Self::to_vector(
+            self.y * other.z - self.z * other.y,
+            self.z * other.x - self.x * other.z,
+            self.x * other.y - self.y * other.x,
+        )
     }
 }
 
@@ -256,4 +283,48 @@ fn compute_the_magnitude_vec5() {
     let a = Tuple::to_vector(-1.0, -2.0, -3.0);
 
     assert_eq!(a.magnitude(), 14.0_f64.sqrt());
+}
+
+#[test]
+fn normalize_vector() {
+    let a = Tuple::to_vector(4.0, 0.0, 0.0);
+    let normalized_a = a.normalize();
+
+    assert_eq!(normalized_a, Tuple::to_vector(1.0, 0.0, 0.0));
+}
+
+#[test]
+fn normalize_vector2() {
+    let a = Tuple::to_vector(1.0, 2.0, 3.0);
+    let normalized_a = a.normalize();
+    let approx = Tuple::to_vector(0.2676, 0.53452, 0.80178);
+
+    assert!(equal(normalized_a.x, approx.x));
+    assert!(equal(normalized_a.y, approx.y));
+    assert!(equal(normalized_a.z, approx.z));
+}
+
+#[test]
+fn magnitude_of_normalized_vector() {
+    let v = Tuple::to_vector(1.0, 2.0, 3.0);
+    let norm = v.normalize();
+
+    assert_eq!(norm.magnitude(), 1.0);
+}
+
+#[test]
+fn dot_product_two_tuples() {
+    let a = Tuple::to_vector(1.0, 2.0, 3.0);
+    let b = Tuple::to_vector(2.0, 3.0, 4.0);
+
+    assert_eq!(a.dot(&b), 20.0);
+}
+
+#[test]
+fn cross_product_two_vectors() {
+    let a = Tuple::to_vector(1.0, 2.0, 3.0);
+    let b = Tuple::to_vector(2.0, 3.0, 4.0);
+
+    assert_eq!(a.cross(&b), Tuple::to_vector(-1.0, 2.0, -1.0));
+    assert_eq!(b.cross(&a), Tuple::to_vector(1.0, -2.0, 1.0));
 }
