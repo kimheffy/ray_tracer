@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_variables)]
+
 use std::ops::{Add, Div, Mul, Sub};
 
 const EPSILON: f64 = 0.0005;
@@ -6,16 +8,25 @@ fn equal(a: f64, b: f64) -> bool {
     (a - b).abs() < EPSILON
 }
 
-#[derive(Debug, PartialEq)]
-struct Tuple {
-    x: f64,
-    y: f64,
-    z: f64,
-    w: f64,
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub struct Tuple {
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+    pub w: f64,
 }
 
 impl Tuple {
-    fn from(x: f64, y: f64, z: f64, w: f64) -> Self {
+    pub fn new() -> Self {
+        Self {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            w: 0.0,
+        }
+    }
+
+    pub fn from(x: f64, y: f64, z: f64, w: f64) -> Self {
         Self { x, y, z, w }
     }
 
@@ -23,11 +34,11 @@ impl Tuple {
         self.w == 1.0
     }
 
-    fn to_point(x: f64, y: f64, z: f64) -> Self {
+    pub fn to_point(x: f64, y: f64, z: f64) -> Self {
         Self { x, y, z, w: 1.0 }
     }
 
-    fn to_vector(x: f64, y: f64, z: f64) -> Self {
+    pub fn to_vector(x: f64, y: f64, z: f64) -> Self {
         Self { x, y, z, w: 0.0 }
     }
 
@@ -42,7 +53,7 @@ impl Tuple {
         (self.x.powi(2) + self.y.powi(2) + self.z.powi(2) + self.w.powi(2)).sqrt()
     }
 
-    fn normalize(&self) -> Self {
+    pub fn normalize(&self) -> Self {
         Self {
             x: self.x / self.magnitude(),
             y: self.y / self.magnitude(),
