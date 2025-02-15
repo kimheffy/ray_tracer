@@ -2,11 +2,7 @@
 
 use std::ops::{Add, Div, Mul, Sub};
 
-const EPSILON: f64 = 0.0005;
-
-fn equal(a: f64, b: f64) -> bool {
-    (a - b).abs() < EPSILON
-}
+use crate::utils::equal;
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub struct Tuple {

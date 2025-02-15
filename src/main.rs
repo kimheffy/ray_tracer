@@ -1,4 +1,6 @@
+mod color;
 mod tuple;
+mod utils;
 
 use tuple::Tuple;
 
