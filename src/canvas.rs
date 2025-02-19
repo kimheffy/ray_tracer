@@ -8,7 +8,7 @@ struct Canvas {
 
 impl Canvas {
     fn new(width: usize, height: usize) -> Self {
-        let data = vec![vec![Color::new(0.0, 0.0, 0.0); height]; width];
+        let data = vec![vec![Color::new(0.0, 0.0, 0.0); width]; height];
         Self {
             width,
             height,
@@ -17,13 +17,32 @@ impl Canvas {
     }
 
     fn to_ppm(&self) -> String {
-        format!("\nP3\n{} {}\n255", self.width, self.height)
+        let mut s = format!("\nP3\n{} {}\n255\n", self.width, self.height);
+
+        for (row_index, row) in self.data.iter().enumerate() {
+            for (col_index, element) in row.iter().enumerate() {
+                let scaled = element.clone() * 255;
+
+                let red = (scaled.red.ceil()).clamp(0.0, 255.0);
+                let green = (scaled.green.ceil()).clamp(0.0, 255.0);
+                let blue = (scaled.blue).ceil().clamp(0.0, 255.0);
+
+                s += &format!("{} {} {}", red, green, blue);
+
+                if col_index < row.len() - 1 {
+                    s += " ";
+                }
+            }
+            s += "\n";
+        }
+
+        s
     }
 
-    fn write_pixel(&mut self, width: usize, height: usize, color: Color) {
+    fn write_pixel(&mut self, x: usize, y: usize, color: Color) {
         for (row_index, row) in self.data.iter_mut().enumerate() {
             for (col_index, element) in row.iter_mut().enumerate() {
-                if width == row_index && height == col_index {
+                if y == row_index && x == col_index {
                     *element = color.clone();
                 }
             }
@@ -65,4 +84,20 @@ fn constructing_ppm_pixel_data() {
     c.write_pixel(0, 0, c1);
     c.write_pixel(2, 1, c2);
     c.write_pixel(4, 2, c3);
+
+    let ppm = c.to_ppm();
+
+    assert_eq!(
+        String::from(
+            "
+P3
+5 3
+255
+255 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 128 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 255
+"
+        ),
+        ppm
+    );
 }
