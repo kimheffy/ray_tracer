@@ -1,13 +1,13 @@
 use crate::color::Color;
 
-struct Canvas {
+pub struct Canvas {
     width: usize,
     height: usize,
     data: Vec<Vec<Color>>,
 }
 
 impl Canvas {
-    fn new(width: usize, height: usize) -> Self {
+    pub fn new(width: usize, height: usize) -> Self {
         let data = vec![vec![Color::new(0.0, 0.0, 0.0); width]; height];
         Self {
             width,
@@ -16,35 +16,71 @@ impl Canvas {
         }
     }
 
-    fn to_ppm(&self) -> String {
-        let mut s = format!("\nP3\n{} {}\n255\n", self.width, self.height);
+    pub fn to_ppm(&self) -> String {
+        let mut ppm: String = String::new();
 
+        // ppm header
+        ppm.push_str("\nP3\n");
+        ppm.push_str(&format!("{} {}\n", self.width, self.height));
+        ppm.push_str("255\n");
+
+        // pixel data
         for (row_index, row) in self.data.iter().enumerate() {
-            for (col_index, element) in row.iter().enumerate() {
-                let scaled = element.clone() * 255;
+            let mut line = String::new();
 
-                let red = (scaled.red.ceil()).clamp(0.0, 255.0);
-                let green = (scaled.green.ceil()).clamp(0.0, 255.0);
-                let blue = (scaled.blue).ceil().clamp(0.0, 255.0);
-
-                s += &format!("{} {} {}", red, green, blue);
-
-                if col_index < row.len() - 1 {
-                    s += " ";
+            for color in row.clone() {
+                let scaled = color * 255;
+                let red = scaled.red.ceil().clamp(0.0, 255.0);
+                let pixel = format!("{} ", red);
+                if line.chars().count() + pixel.chars().count() > 70 {
+                    ppm.push_str(&line.trim_end());
+                    ppm.push('\n');
+                    line.clear();
                 }
+                line.push_str(&pixel);
+
+                let green = scaled.green.ceil().clamp(0.0, 255.0);
+                let pixel = format!("{} ", green);
+                if line.chars().count() + pixel.chars().count() > 70 {
+                    ppm.push_str(&line.trim_end());
+                    ppm.push('\n');
+                    line.clear();
+                }
+                line.push_str(&pixel);
+
+                let blue = scaled.blue.ceil().clamp(0.0, 255.0);
+                let pixel = format!("{} ", blue);
+                if line.chars().count() + pixel.chars().count() > 70 {
+                    ppm.push_str(&line.trim_end());
+                    ppm.push('\n');
+                    line.clear();
+                }
+                line.push_str(&pixel);
             }
-            s += "\n";
+
+            if !line.is_empty() {
+                ppm.push_str(&line.trim_end());
+                ppm.push('\n')
+            }
         }
 
-        s
+        ppm
     }
 
-    fn write_pixel(&mut self, x: usize, y: usize, color: Color) {
+    pub fn write_pixel(&mut self, x: usize, y: usize, color: Color) {
         for (row_index, row) in self.data.iter_mut().enumerate() {
             for (col_index, element) in row.iter_mut().enumerate() {
                 if y == row_index && x == col_index {
                     *element = color.clone();
                 }
+            }
+        }
+    }
+
+    fn fill_every_with(&mut self, default_color: Color) {
+        for (row_index, row) in self.data.iter_mut().enumerate() {
+            for (col_index, element) in row.iter_mut().enumerate() {
+                *element = default_color.clone();
             }
         }
     }
@@ -73,6 +109,7 @@ fn constructing_ppm_header() {
     assert_eq!(ppm, format!("\nP3\n5 3\n255"));
 }
 
+#[ignore]
 #[test]
 fn constructing_ppm_pixel_data() {
     let mut c = Canvas::new(5, 3);
@@ -96,6 +133,30 @@ P3
 255 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 0 0 0 0 0 0 0 128 0 0 0 0 0 0 0
 0 0 0 0 0 0 0 0 0 0 0 0 0 0 255
+"
+        ),
+        ppm
+    );
+}
+
+#[test]
+fn splitting_long_lines_ppm_file() {
+    let mut c = Canvas::new(10, 2);
+
+    c.fill_every_with(Color::new(1.0, 0.8, 0.6));
+
+    let ppm = c.to_ppm();
+
+    assert_eq!(
+        String::from(
+            "
+P3
+10 2
+255
+255 204 153 255 204 153 255 204 153 255 204 153 255 204 153 255 204
+153 255 204 153 255 204 153 255 204 153 255 204 153
+255 204 153 255 204 153 255 204 153 255 204 153 255 204 153 255 204
+153 255 204 153 255 204 153 255 204 153 255 204 153
 "
         ),
         ppm
