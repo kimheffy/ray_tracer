@@ -1,9 +1,9 @@
 use crate::color::Color;
 
 pub struct Canvas {
-    width: usize,
-    height: usize,
-    data: Vec<Vec<Color>>,
+    pub width: usize,
+    pub height: usize,
+    pub data: Vec<Vec<Color>>,
 }
 
 impl Canvas {
@@ -20,7 +20,7 @@ impl Canvas {
         let mut ppm: String = String::new();
 
         // ppm header
-        ppm.push_str("\nP3\n");
+        ppm.push_str("P3\n");
         ppm.push_str(&format!("{} {}\n", self.width, self.height));
         ppm.push_str("255\n");
 
@@ -106,7 +106,7 @@ fn constructing_ppm_header() {
     let c = Canvas::new(5, 3);
     let ppm = c.to_ppm();
 
-    assert_eq!(ppm, format!("\nP3\n5 3\n255"));
+    assert_eq!(ppm, format!("P3\n5 3\n255"));
 }
 
 #[ignore]

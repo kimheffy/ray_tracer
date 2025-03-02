@@ -4,8 +4,10 @@ mod matrix;
 mod tuple;
 mod utils;
 
-pub use canvas::Canvas;
-pub use color::Color;
+use std::{fmt::format, fs, io::Write};
+
+use canvas::Canvas;
+use color::Color;
 use tuple::Tuple;
 
 type Vector = Tuple;
@@ -61,25 +63,32 @@ fn main() {
         Tuple::to_vector(-0.01, 0.0, 0.0),
     );
 
-    let canvas_width = 100;
-    let canvas_height = 100;
+    let canvas_width = 900;
+    let canvas_height = 500;
     let mut canvas = Canvas::new(canvas_width, canvas_height);
 
-    p = tick(&e, &p);
+    println!("starting projectile? ({}, {}) ", p.position.x, p.position.y);
 
-    while p.position.y <= 0.0 {
-        p = tick(&e, &p);
-
+    while (p.position.x as usize) < canvas_width {
         let p_x = p.position.x as usize;
-        let p_y = p.position.y as usize;
-        let converted_y = canvas_height - p_y;
+        let p_y = canvas_height - p.position.y as usize;
 
-        if (p_x > 0 && p_x < canvas_width) && (converted_y > 0 && converted_y < canvas_height) {
-            canvas.write_pixel(p_x, converted_y, Color::new(1.0, 1.0, 1.0));
+        if p_y < canvas_height {
+            println!("pos: ({}, {})", p_x, p_y);
+
+            canvas.write_pixel(p_x, p_y, Color::new(1.0, 1.0, 1.0));
+
+            p = tick(&e, &p);
+        } else {
+            break;
         }
-
-        //println!("Projectile's position: {:?}", p);
     }
 
-    println!("{}", canvas.to_ppm());
+    let mut file = fs::OpenOptions::new()
+        .write(true)
+        .create(true)
+        .open("sim.ppm")
+        .unwrap();
+
+    file.write_fmt(format_args!("{}", canvas.to_ppm())).unwrap();
 }
