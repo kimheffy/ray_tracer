@@ -76,7 +76,7 @@ fn main() {
         if p_y < canvas_height {
             println!("pos: ({}, {})", p_x, p_y);
 
-            canvas.write_pixel(p_x, p_y, Color::new(1.0, 1.0, 1.0));
+            canvas.write_pixel(p_x, p_y, Color::new(1.0, 0.0, 0.0));
 
             p = tick(&e, &p);
         } else {
