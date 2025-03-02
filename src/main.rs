@@ -1,8 +1,11 @@
 mod canvas;
 mod color;
+mod matrix;
 mod tuple;
 mod utils;
 
+pub use canvas::Canvas;
+pub use color::Color;
 use tuple::Tuple;
 
 type Vector = Tuple;
@@ -45,21 +48,38 @@ fn tick(env: &Environment, proj: &Projectile) -> Projectile {
 }
 
 fn main() {
-    let mut p = Projectile::from(
-        Tuple::to_point(0.0, 1.0, 0.0),
-        Tuple::to_vector(1.0, 1.0, 0.0).normalize(),
-    );
+    let f: &str = "0.0";
+    f.parse::<f64>().unwrap();
+
+    let start = Tuple::to_point(0.0, 1.0, 0.0);
+    let velocity = Tuple::to_vector(1.0, 1.8, 0.0).normalize() * 11.25;
+
+    let mut p = Projectile::from(start, velocity);
 
     let e = Environment::from(
         Tuple::to_vector(0.0, -0.1, 0.0),
         Tuple::to_vector(-0.01, 0.0, 0.0),
     );
 
-    println!("p position is {}", p.position.y);
+    let canvas_width = 100;
+    let canvas_height = 100;
+    let mut canvas = Canvas::new(canvas_width, canvas_height);
 
-    while p.position.y >= 0.0 {
+    p = tick(&e, &p);
+
+    while p.position.y <= 0.0 {
         p = tick(&e, &p);
 
-        println!("Projectile's position: {:?}", p);
+        let p_x = p.position.x as usize;
+        let p_y = p.position.y as usize;
+        let converted_y = canvas_height - p_y;
+
+        if (p_x > 0 && p_x < canvas_width) && (converted_y > 0 && converted_y < canvas_height) {
+            canvas.write_pixel(p_x, converted_y, Color::new(1.0, 1.0, 1.0));
+        }
+
+        //println!("Projectile's position: {:?}", p);
     }
+
+    println!("{}", canvas.to_ppm());
 }
