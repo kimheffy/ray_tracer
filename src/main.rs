@@ -4,7 +4,7 @@ mod matrix;
 mod tuple;
 mod utils;
 
-use std::{fmt::format, fs, io::Write};
+use std::{fs, io::Write};
 
 use canvas::Canvas;
 use color::Color;
