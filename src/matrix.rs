@@ -24,6 +24,27 @@ impl Matrix {
     fn new() -> Self {
         Self(vec![vec![0.0; 4]; 4])
     }
+
+    fn identity() -> Self {
+        matrix!(
+            "1 0 0 0
+0 1 0 0
+0 0 1 0
+0 0 0 1"
+        )
+    }
+
+    fn transpose(&self) -> Self {
+        let mut t = Self::new();
+
+        for (row_index, row) in self.0.iter().enumerate() {
+            for (col_index, ele) in row.iter().enumerate() {
+                t.0[col_index][row_index] = *ele;
+            }
+        }
+
+        t
+    }
 }
 
 impl Mul<Self> for Matrix {
@@ -72,6 +93,37 @@ impl Mul<tuple::Tuple> for Matrix {
 }
 
 #[test]
+fn transposing_identity_matrix() {
+    let i = Matrix::identity();
+
+    i.transpose();
+
+    assert_eq!(i, Matrix::identity());
+}
+
+#[test]
+fn transposing_a_matrix() {
+    let a = matrix!(
+        "0 9 3 0
+9 8 0 8
+1 8 5 3
+0 0 5 8"
+    );
+
+    let t = a.transpose();
+
+    assert_eq!(
+        t,
+        matrix!(
+            "0 9 1 0
+9 8 8 0
+3 0 5 5
+0 8 3 8"
+        )
+    );
+}
+
+#[test]
 fn multiplying_matrix_by_identity_matrix() {
     let a = matrix!(
         "0 1 2 4
@@ -80,12 +132,7 @@ fn multiplying_matrix_by_identity_matrix() {
 4 8 16 32"
     );
 
-    let i = matrix!(
-        "1 0 0 0
-0 1 0 0
-0 0 1 0
-0 0 0 1"
-    );
+    let i = Matrix::identity();
 
     let origin_a = a.clone();
 
@@ -94,12 +141,7 @@ fn multiplying_matrix_by_identity_matrix() {
 
 #[test]
 fn multiplying_identity_matrix_by_tuple() {
-    let i = matrix!(
-        "1 0 0 0
-0 1 0 0
-0 0 1 0
-0 0 0 1"
-    );
+    let i = Matrix::identity();
 
     let t = tuple::Tuple::from(1.0, 2.0, 3.0, 4.0);
 
