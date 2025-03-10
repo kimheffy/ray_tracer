@@ -150,8 +150,7 @@ fn splitting_long_lines_ppm_file() {
 
     assert_eq!(
         String::from(
-            "
-P3
+            "P3
 10 2
 255
 255 204 153 255 204 153 255 204 153 255 204 153 255 204 153 255 204
