@@ -1,289 +1,163 @@
-use std::ops::Mul;
+use std::{
+    ops::{AddAssign, Mul},
+    process::Output,
+};
 
-use crate::tuple;
-
-macro_rules! matrix {
-    ($mat:literal) => {{
-        let mut _matr = Matrix::new();
-
-        for (row_index, line) in $mat.lines().enumerate() {
-            for (col_index, c) in line.trim().split(' ').enumerate() {
-                println!("at ({},{}): {}", row_index, col_index, c);
-                _matr.0[row_index][col_index] = c.parse::<f64>().unwrap();
-            }
-        }
-
-        (_matr)
-    }};
+#[derive(Debug, Clone, PartialEq)]
+struct Matrix<T> {
+    row: usize,
+    col: usize,
+    data: Vec<T>,
 }
 
-#[derive(PartialEq, Debug, Clone)]
-struct Matrix(Vec<Vec<f64>>);
-
-impl Matrix {
-    fn new() -> Self {
-        Self(vec![vec![0.0; 4]; 4])
+impl<T> Matrix<T>
+where
+    T: std::default::Default,
+{
+    fn new(row: usize, col: usize, mut data: Vec<T>) -> Self {
+        data.resize_with(row * col, Default::default);
+        Self { row, col, data }
     }
 
-    fn identity() -> Self {
-        matrix!(
-            "1 0 0 0
-0 1 0 0
-0 0 1 0
-0 0 0 1"
-        )
-    }
-
-    fn transpose(&self) -> Self {
-        let mut t = Self::new();
-
-        for (row_index, row) in self.0.iter().enumerate() {
-            for (col_index, ele) in row.iter().enumerate() {
-                t.0[col_index][row_index] = *ele;
-            }
+    // row: 0
+    // col: 3
+    // n: 4 (col)
+    // location: (row * width) + col
+    // TODO: Should this return a reference or value?
+    fn at(&self, row: usize, col: usize) -> Option<&T> {
+        if row > self.row || col > self.col {
+            return None;
         }
 
-        t
+        self.data.get((row * self.col) + col)
+    }
+
+    fn set(&mut self, row: usize, col: usize, val: T) {
+        if row > self.row || col > self.col {
+            panic!("Given row or col is incorrect.");
+        }
+
+        let location = (row * self.col) + col;
+        self.data[location] = val;
     }
 }
 
-impl Mul<Self> for Matrix {
+impl<T> Mul for Matrix<T>
+where
+    T: std::ops::Mul<T, Output = T> + std::ops::AddAssign + Copy + Default,
+{
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        let mut c = Matrix::new();
+        // if self.row != rhs.row && self.col != rhs.col {
+        //     return None;
+        // }
 
-        for (row_index, row) in c.0.iter_mut().enumerate() {
-            for (col_index, ele) in row.iter_mut().enumerate() {
-                *ele = self.0[row_index][0] * rhs.0[0][col_index]
-                    + self.0[row_index][1] * rhs.0[1][col_index]
-                    + self.0[row_index][2] * rhs.0[2][col_index]
-                    + self.0[row_index][3] * rhs.0[3][col_index];
+        let mut res = Matrix::new(self.row, self.col, vec![]);
+
+        for r in 0..self.row {
+            for c in 0..self.col {
+                let mut sum_intersection: T = T::default();
+                for i in 0..self.row {
+                    let intersection_one = self.at(r, i).unwrap().clone(); // * rhs.at(i, c).unwrap();
+                    let intersection_two = rhs.at(i, c).unwrap().clone();
+                    let mul = intersection_one * intersection_two;
+                    sum_intersection += mul;
+                }
+
+                res.set(r, c, sum_intersection);
             }
         }
 
-        c
+        res
     }
 }
 
-impl Mul<tuple::Tuple> for Matrix {
-    type Output = tuple::Tuple;
-
-    fn mul(self, rhs: tuple::Tuple) -> Self::Output {
-        let mut t = tuple::Tuple::new();
-
-        for i in 0..3 {
-            let val = self.0[i][0] * rhs.x
-                + self.0[i][1] * rhs.y
-                + self.0[i][2] * rhs.z
-                + self.0[i][3] * rhs.w;
-
-            match i {
-                0 => t.x = val,
-                1 => t.y = val,
-                2 => t.z = val,
-                _ => eprintln!("Can't match with i"),
-            }
+// https://athemathmo.github.io/rulinalg/doc/src/rulinalg/macros/matrix.rs.html#45-66
+macro_rules! matrix {
+    () => {
+        {
+            // Handle the case when called with no arguments, i.e. matrix![]
+            use $crate::matrix::Matrix;
+            Matrix::new(0, 0, vec![])
         }
-
-        t.w = rhs.w;
-
-        t
+    };
+    ($( $( $x: expr ),*);*) => {
+        {
+            use $crate::matrix::Matrix;
+            let data_as_nested_array = [ $( [ $($x),* ] ),* ];
+            let rows = data_as_nested_array.len();
+            let cols = data_as_nested_array[0].len();
+            let data_as_flat_array = data_as_nested_array.into_iter().flatten().collect();
+            Matrix::new(rows, cols, data_as_flat_array)
+        }
     }
 }
 
-#[test]
-fn transposing_identity_matrix() {
-    let i = Matrix::identity();
+#[cfg(test)]
+mod tests {
+    use crate::matrix::Matrix;
 
-    i.transpose();
+    #[test]
+    fn multiple_two_matrices() {
+        let a = matrix!(1, 2, 3, 4; 5, 6, 7, 8; 9, 8, 7, 6; 5, 4, 3, 2);
+        let b = matrix![-2, 1, 2, 3; 3, 2, 1, -1; 4, 3, 6, 5; 1, 2, 7, 8];
 
-    assert_eq!(i, Matrix::identity());
-}
+        let result = matrix![20, 22, 50, 48; 44, 54, 114, 108; 40, 58, 110, 102; 16, 26, 46, 42];
 
-#[test]
-fn transposing_a_matrix() {
-    let a = matrix!(
-        "0 9 3 0
-9 8 0 8
-1 8 5 3
-0 0 5 8"
-    );
+        assert_eq!(a * b, result);
+    }
 
-    let t = a.transpose();
+    #[test]
+    fn matrix_equality_with_different_matrices() {
+        let a = matrix![1, 2, 3, 4; 5, 6, 7, 8; 9, 8, 7, 6; 5, 4, 3, 2];
+        let b = matrix![2, 3, 4, 5; 6, 7, 8, 9; 8, 7, 6, 5; 4, 3, 2, 1];
 
-    assert_eq!(
-        t,
-        matrix!(
-            "0 9 1 0
-9 8 8 0
-3 0 5 5
-0 8 3 8"
-        )
-    );
-}
+        assert_ne!(a, b);
+    }
 
-#[test]
-fn multiplying_matrix_by_identity_matrix() {
-    let a = matrix!(
-        "0 1 2 4
-1 2 4 8
-2 4 8 10
-4 8 16 32"
-    );
+    #[test]
+    fn matrix_equality_with_identical_matrices() {
+        let a = matrix![1, 2, 3, 4; 5, 6, 7, 8; 9, 8, 7, 6; 5, 4, 3, 2];
+        let b = matrix![1, 2, 3, 4; 5, 6, 7, 8; 9, 8, 7, 6; 5, 4, 3, 2];
 
-    let i = Matrix::identity();
+        assert_eq!(a, b);
+    }
 
-    let origin_a = a.clone();
+    #[test]
+    fn construct_and_inspect() {
+        let m = matrix![1.0, 2.0, 3.0, 4.0; 5.5, 6.5, 7.5, 8.5; 9.0, 10.0, 11.0, 12.0; 13.5, 14.5, 15.5, 16.5];
 
-    assert_eq!(a * i, origin_a);
-}
+        assert_eq!(m.at(0, 0), Some(&1.0));
+        assert_eq!(m.at(0, 3), Some(&4.0));
+        assert_eq!(m.at(1, 0), Some(&5.5));
+        assert_eq!(m.at(1, 2), Some(&7.5));
+        assert_eq!(m.at(2, 2), Some(&11.0));
+        assert_eq!(m.at(3, 0), Some(&13.5));
+        assert_eq!(m.at(3, 2), Some(&15.5));
+    }
 
-#[test]
-fn multiplying_identity_matrix_by_tuple() {
-    let i = Matrix::identity();
+    #[test]
+    fn create_three_by_five_matrix() {
+        let actual = matrix![9, 1, 2, 0, 3; 0, 0, 2, 3, 1; 8, 7, 5, 4, 6];
+        let expected = Matrix::new(3, 5, vec![9, 1, 2, 0, 3, 0, 0, 2, 3, 1, 8, 7, 5, 4, 6]);
+        assert_eq!(actual, expected);
+    }
 
-    let t = tuple::Tuple::from(1.0, 2.0, 3.0, 4.0);
+    #[test]
+    fn create_two_by_two_matrix() {
+        let actual: Matrix<f64> = matrix![3.0, 1.0; 2.0, 7.0];
+        let expected: Matrix<f64> = Matrix::new(2, 2, vec![3.0, 1.0, 2.0, 7.0]);
+        assert_eq!(actual, expected);
+    }
 
-    assert_eq!(i * t, t);
-}
+    #[test]
+    fn create_empty_matrix() {
+        let actual: Matrix<usize> = matrix![];
+        let expected: Matrix<usize> = Matrix::new(0, 0, vec![]);
 
-#[test]
-fn multiplying_two_matrices() {
-    let a = matrix!(
-        "1 2 3 4
-5 6 7 8
-9 8 7 6
-5 4 3 2
-"
-    );
-
-    let b = matrix!(
-        "-2 1 2 3
-3 2 1 -1
-4 3 6 5
-1 2 7 8"
-    );
-
-    let result = a * b;
-
-    assert_eq!(
-        result,
-        matrix!(
-            "20 22 50 48
-44 54 114 108
-40 58 110 102
-16 26 46 42"
-        )
-    );
-}
-
-#[test]
-fn multiply_matrix_by_tuple() {
-    let a = matrix!(
-        "1 2 3 4
-2 4 4 2
-8 6 4 1
-0 0 0 1
-"
-    );
-
-    let b = tuple::Tuple::from(1.0, 2.0, 3.0, 1.0);
-
-    assert_eq!(a * b, tuple::Tuple::from(18.0, 24.0, 33.0, 1.0));
-}
-
-#[test]
-fn constructing_inspecting_a_4x4_matrix() {
-    let mat = matrix!(
-        "1 2 3 4
-    5.5 6.5 7.5 8.5
-    9 10 11 12
-    13.5 14.5 15.5 16.5"
-    );
-
-    assert_eq!(mat.0[0][0], 1.0);
-    assert_eq!(mat.0[0][1], 2.0);
-    assert_eq!(mat.0[0][2], 3.0);
-    assert_eq!(mat.0[0][3], 4.0);
-    assert_eq!(mat.0[1][0], 5.5);
-    assert_eq!(mat.0[1][1], 6.5);
-    assert_eq!(mat.0[1][2], 7.5);
-    assert_eq!(mat.0[1][3], 8.5);
-    assert_eq!(mat.0[2][0], 9.0);
-    assert_eq!(mat.0[2][1], 10.0);
-    assert_eq!(mat.0[2][2], 11.0);
-    assert_eq!(mat.0[2][3], 12.0);
-    assert_eq!(mat.0[3][0], 13.5);
-    assert_eq!(mat.0[3][1], 14.5);
-    assert_eq!(mat.0[3][2], 15.5);
-    assert_eq!(mat.0[3][3], 16.5);
-}
-
-#[test]
-fn constructing_2x2_matrix() {
-    let mat = matrix!(
-        "-3 5
-        1 -2"
-    );
-
-    assert_eq!(mat.0[0][0], -3.0);
-    assert_eq!(mat.0[0][1], 5.0);
-    assert_eq!(mat.0[1][0], 1.0);
-    assert_eq!(mat.0[1][1], -2.0);
-}
-
-#[test]
-fn constructing_3x3_matrix() {
-    let mat = matrix!(
-        "-3 5 0
-        1 -2 -7
-        0 1.0 1.0"
-    );
-
-    assert_eq!(mat.0[0][0], -3.0);
-    assert_eq!(mat.0[0][1], 5.0);
-    assert_eq!(mat.0[0][2], 0.0);
-    assert_eq!(mat.0[1][0], 1.0);
-    assert_eq!(mat.0[1][1], -2.0);
-    assert_eq!(mat.0[1][2], -7.0);
-    assert_eq!(mat.0[2][0], 0.0);
-    assert_eq!(mat.0[2][1], 1.0);
-    assert_eq!(mat.0[2][2], 1.0);
-}
-
-#[test]
-fn matrix_equality_identical() {
-    let a = matrix!(
-        "1 2 3 4
-    5 6 7 8
-    9 8 7 6
-    5 4 3 2"
-    );
-    let b = matrix!(
-        "1 2 3 4
-    5 6 7 8
-    9 8 7 6
-    5 4 3 2"
-    );
-
-    assert!(a == b);
-}
-
-#[test]
-fn matrix_equality_different() {
-    let a = matrix!(
-        "1 2 3 4
-    5 6 7 8
-    9 8 7 6
-    5 4 3 2"
-    );
-    let b = matrix!(
-        "2 3 4 5
-    6 7 8 9
-    8 7 6 5
-    4 3 2 1"
-    );
-
-    assert!(a != b);
+        assert_eq!(actual.row, expected.row);
+        assert_eq!(actual.col, expected.col);
+        assert_eq!(actual.data, expected.data);
+    }
 }
